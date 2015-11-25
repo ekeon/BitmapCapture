@@ -9,6 +9,8 @@ import android.hardware.Camera;
 import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.text.TextUtils;
+import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
@@ -17,6 +19,7 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.Toast;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 
@@ -28,8 +31,6 @@ public class MainActivity extends AppCompatActivity {
   private ImageView capturedImageHolder;
   private FrameLayout cameraFrameLayout;
   private Button btnSave;
-
-  long now = System.currentTimeMillis();
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -49,32 +50,47 @@ public class MainActivity extends AppCompatActivity {
     btnSave = (Button) findViewById(R.id.button_save);
     btnSave.setOnClickListener(new View.OnClickListener() {
       @Override
-      public void onClick(View vv) {
+      public void onClick(View v) {
+        Log.d("TAG", "button click");
         camera.takePicture(null, null, takePicture);
       }
     });
   }
 
-  private Camera.PictureCallback takePicture = new Camera.PictureCallback() {
+  private void makeDir() {
+    String str = Environment.getExternalStorageState();
 
+    if (TextUtils.equals(str, Environment.MEDIA_MOUNTED)) {
+      String dirPath = "/sdcard/StudyBitmap";
+      File file = new File(dirPath);
+
+      if (!file.exists()) {
+        file.mkdirs();
+      }
+    } else {
+      Log.d("TAG", "fail");
+    }
+  }
+
+  private Camera.PictureCallback takePicture = new Camera.PictureCallback() {
     @Override
     public void onPictureTaken(byte[] data, Camera camera) {
       // TODO Auto-generated method stub
       FileOutputStream fos;
 
-      if(data!=null) {
+      if(data != null) {
+        makeDir();
         Bitmap bitmap1 = BitmapFactory.decodeByteArray(data, 0, data.length);
         capturedImageHolder.setImageBitmap(bitmap1);
         try {
-          fos = new FileOutputStream(Environment.getExternalStorageDirectory().toString() + "/" + now + "capture.jpeg");
+          long now = System.currentTimeMillis();
+          fos = new FileOutputStream(Environment.getExternalStorageDirectory().toString() + "/StudyBitmap/" + now + "capture.jpg");
           bitmap1.compress(Bitmap.CompressFormat.JPEG, 100, fos);
         } catch (FileNotFoundException e) {
           e.printStackTrace();
         }
-
         camera.startPreview();
       }
-
 
     }
   };
