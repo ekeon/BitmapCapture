@@ -4,7 +4,6 @@ import android.content.Context;
 import android.content.pm.ActivityInfo;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Canvas;
 import android.hardware.Camera;
 import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
@@ -17,11 +16,14 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
-import android.widget.Toast;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -30,12 +32,16 @@ public class MainActivity extends AppCompatActivity {
 
   private ImageView capturedImageHolder;
   private FrameLayout cameraFrameLayout;
-  private Button btnSave;
+  private Button btnSaveStart;
+  private Button btnSaveStop;
+
+  private Timer timer = new Timer();
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     setContentView(R.layout.activity_main);
+
     setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
 
     cameraFrameLayout = (FrameLayout) findViewById(R.id.main_framelayout);
@@ -46,17 +52,25 @@ public class MainActivity extends AppCompatActivity {
 
     cameraFrameLayout.addView(surfacePreviewTest);
 
-
-    btnSave = (Button) findViewById(R.id.button_save);
-    btnSave.setOnClickListener(new View.OnClickListener() {
+    btnSaveStart = (Button) findViewById(R.id.button_start);
+    btnSaveStart.setOnClickListener(new View.OnClickListener() {
       @Override
       public void onClick(View v) {
         Log.d("TAG", "button click");
-        camera.takePicture(null, null, takePicture);
+        timer.schedule(timeTask(), 1000, 500);
+      }
+    });
+
+    btnSaveStop = (Button) findViewById(R.id.button_stop);
+    btnSaveStop.setOnClickListener(new View.OnClickListener() {
+      @Override
+      public void onClick(View v) {
+        timer.cancel();
       }
     });
   }
 
+  //폴더생성
   private void makeDir() {
     String str = Environment.getExternalStorageState();
 
@@ -72,19 +86,35 @@ public class MainActivity extends AppCompatActivity {
     }
   }
 
+  private TimerTask timeTask() {
+    TimerTask timerTask = new TimerTask() {
+      @Override
+      public void run() {
+        camera.takePicture(null, null, takePicture);
+      }
+    };
+    return timerTask;
+  }
+
   private Camera.PictureCallback takePicture = new Camera.PictureCallback() {
     @Override
     public void onPictureTaken(byte[] data, Camera camera) {
       // TODO Auto-generated method stub
       FileOutputStream fos;
+      long now;
 
       if(data != null) {
         makeDir();
         Bitmap bitmap1 = BitmapFactory.decodeByteArray(data, 0, data.length);
         capturedImageHolder.setImageBitmap(bitmap1);
+
         try {
-          long now = System.currentTimeMillis();
-          fos = new FileOutputStream(Environment.getExternalStorageDirectory().toString() + "/StudyBitmap/" + now + "capture.jpg");
+          now = System.currentTimeMillis();
+          Date date = new Date(now);
+          SimpleDateFormat curTime = new SimpleDateFormat("yyyyMMddHHmmss");
+          String strCurDate = curTime.format(date);
+
+          fos = new FileOutputStream(Environment.getExternalStorageDirectory().toString() + "/StudyBitmap/" + strCurDate + "capture.jpg");
           bitmap1.compress(Bitmap.CompressFormat.JPEG, 100, fos);
         } catch (FileNotFoundException e) {
           e.printStackTrace();
